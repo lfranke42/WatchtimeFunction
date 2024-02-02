@@ -26,7 +26,7 @@ public class WatchtimeEntries
         _table = tableService.GetTableClient(tableName);
     }
 
-    [OpenApiOperation(operationId: "putUser", tags: ["books"], Summary = "Set a user's watchtime",
+    [OpenApiOperation(operationId: "putUser", tags: ["ranking"], Summary = "Set a user's watchtime",
         Description = "Create or update the user's total watchtime in the backend.")]
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UserModel))]
@@ -84,27 +84,44 @@ public class WatchtimeEntries
     [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
     [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(string),
         Summary = "UserId of the requested user used for the ranking lookup")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(long))]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json",
+        bodyType: typeof(RankingModel))]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.NotFound, contentType: "application/json",
-        bodyType: typeof(long))]
+        bodyType: typeof(ErrorModel))]
     [Function("HTTPGetRanking")]
     public async Task<HttpResponseData> GetRanking(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ranking/position")]
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ranking/position/{userId}")]
         HttpRequestData request,
         string userId)
     {
         _logger.LogInformation(
             $"[{request.FunctionContext.InvocationId}] Processing request for list watchtime entries endpoint.");
+        
+        // Get all users from the table
+        var query = from entity in _table.Query<UserTableModel>() select entity;
+        var userEntries = query.ToList();
+        _logger.LogInformation("Found " + userEntries.Count + " entries.");
+        
+        // Order the results and find user
+        userEntries.Sort((x, y) => x.TotalWatchtime.CompareTo(y.TotalWatchtime));
+        userEntries.Reverse();
+        var userRank = userEntries.FindIndex(x => x.RowKey == userId);
+        _logger.LogInformation("User rank: " + userRank + " for user " + userId + ".");
 
-        // var queryResult = _table.GetEntityIfExists<BookTableModel>(partitionKey: string.Empty, rowKey: isbn);
-
-        // check if user exists
-
-        // get position of user in list
-
-        // return successfull response
+        if (userRank == -1)
+        {
+            _logger.LogError($"User with id {userId} not found.");
+            var errorResponse = request.CreateResponse(HttpStatusCode.NotFound);
+            await errorResponse.WriteAsJsonAsync(new ErrorModel(
+                Error: "UserNotFound",
+                ErrorMessage: "The user with the given id was not found."
+            ));
+            return errorResponse;
+        }
+        
+        var rankingModel = new RankingModel(userRank + 1, userId, userEntries[userRank].TotalWatchtime);
         var response = request.CreateResponse(HttpStatusCode.OK);
-        await response.WriteAsJsonAsync(0);
+        await response.WriteAsJsonAsync(rankingModel);
         return response;
     }
 }

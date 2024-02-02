@@ -2,5 +2,7 @@ namespace Function.model;
 
 public record RankingModel
 (
-    long Position
-);
+    long Position,
+    string UserId,
+    long TotalWatchtime
+    );
