@@ -1,7 +1,6 @@
-namespace WatchtimeFunctions.model;
+namespace Function.model;
 
-public record ErrorModel
-(
+public record ErrorModel(
     string ErrorMessage,
     string Error
 );
