@@ -1,8 +1,6 @@
 namespace Function.model;
 
-public record RankingModel
-(
+public record RankingModel(
     long Position,
-    string UserId,
-    long TotalWatchtime
-    );
+    long TotalWatchtime,
+    List<AnonRankingModel> ClosestNeighbors);
