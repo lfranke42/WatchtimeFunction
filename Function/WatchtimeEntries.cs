@@ -63,7 +63,7 @@ public class WatchtimeEntries
             await errorResponse.WriteAsJsonAsync(new ErrorModel(
                 Error: "UserNotFound",
                 ErrorMessage: "The user with the given id was not found."
-            ));
+            ), HttpStatusCode.NotFound);
             return errorResponse;
         }
 
@@ -161,7 +161,7 @@ public class WatchtimeEntries
             await errorResponse.WriteAsJsonAsync(new ErrorModel(
                 Error: "InvalidRequestBody",
                 ErrorMessage: "The request body is invalid."
-            ));
+            ), HttpStatusCode.BadRequest);
             return errorResponse;
         }
 
@@ -176,7 +176,7 @@ public class WatchtimeEntries
             await errorResponse.WriteAsJsonAsync(new ErrorModel(
                 Error: "TableTransactionError",
                 ErrorMessage: "There was a problem executing the table transaction."
-            ));
+            ), HttpStatusCode.InternalServerError);
             return errorResponse;
         }
 
@@ -213,7 +213,7 @@ public class WatchtimeEntries
         await errorResponse.WriteAsJsonAsync(new ErrorModel(
             ErrorMessage: $"There was an error deleting the user with id {userId}: {deleteResult.ReasonPhrase}.",
             Error: "BookDeletionError"
-        ));
+        ), HttpStatusCode.InternalServerError);
         return errorResponse;
     }
 }
